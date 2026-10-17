@@ -1,0 +1,907 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Daman</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lalezar&family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: one narrow column. Poster headline, then a deal ticket that is both form and tracker; a stamp lands on it once the money is secured. The owner gets a second view (admin) with a decision queue, payment methods and arbitration. */
+:root {
+  --bg: #ECEFEA;
+  --paper: #FFFFFF;
+  --ink: #0E1511;
+  --muted: #58665D;
+  --line: #D3D9D1;
+  --accent: #0B7A54;
+  --accent-ink: #FFFFFF;
+  --accent-soft: #DCEFE6;
+  --warn: #9C5A00;
+  --warn-soft: #FAEBCB;
+  --font-display: "Lalezar", "IBM Plex Sans Arabic", "Segoe UI", Tahoma, sans-serif;
+  --font-body: "IBM Plex Sans Arabic", "Segoe UI", Tahoma, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0A0F0C; --paper: #131A16; --ink: #EAF1EC; --muted: #9DAAA2; --line: #26312B;
+    --accent: #3DDC97; --accent-ink: #04140C; --accent-soft: #123626; --warn: #F0B65A; --warn-soft: #3A2B0D;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0A0F0C; --paper: #131A16; --ink: #EAF1EC; --muted: #9DAAA2; --line: #26312B;
+  --accent: #3DDC97; --accent-ink: #04140C; --accent-soft: #123626; --warn: #F0B65A; --warn-soft: #3A2B0D;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); direction: rtl;
+  font-family: var(--font-body); font-size: 16px; line-height: 1.7;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0; overflow-x: hidden;
+}
+.col { max-width: 640px; margin-inline: auto; }
+p { margin: 0; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; direction: ltr; unicode-bidi: isolate; }
+[hidden] { display: none !important; }
+
+header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding-block: 20px; }
+.brand { display: flex; align-items: baseline; gap: 10px; background: none; border: 0; padding: 0; color: inherit; cursor: pointer; }
+.brand b { font: 400 30px/1 var(--font-display); }
+.brand small { font: 500 12px var(--font-mono); color: var(--muted); direction: ltr; }
+.hd-r { display: flex; align-items: center; gap: 8px; }
+.fee-badge { font-size: 13px; font-weight: 600; padding: 4px 12px; border-radius: 999px; border: 1.5px solid var(--ink); white-space: nowrap; }
+.admin-btn { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 14px; border-radius: 999px; border: 0; background: var(--ink); color: var(--bg); font: 600 13px var(--font-body); cursor: pointer; }
+.count { min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px; background: var(--accent); color: var(--accent-ink); font: 500 12px/22px var(--font-mono); text-align: center; }
+.count.zero { background: var(--muted); color: var(--bg); }
+
+h1 { font: 400 clamp(46px, 13vw, 76px)/1.12 var(--font-display); margin: 20px 0 0; text-wrap: balance; }
+h1 span { color: var(--accent); }
+.sub { margin-top: 14px; font-size: 18px; color: var(--muted); max-width: 30em; }
+
+/* ticket */
+.ticket { position: relative; margin-top: 28px; background: var(--paper); border-radius: 18px; border: 1px solid var(--line); box-shadow: 0 24px 40px -28px rgba(10,25,16,.45); }
+.ticket::before, .ticket::after { content: ""; position: absolute; top: 47px; width: 22px; height: 22px; border-radius: 50%; background: var(--bg); border: 1px solid var(--line); }
+.ticket::before { right: -12px; clip-path: inset(0 50% 0 0); }
+.ticket::after { left: -12px; clip-path: inset(0 0 0 50%); }
+.t-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 22px; min-height: 58px; border-bottom: 2px dashed var(--line); }
+.t-title { font: 400 22px/1 var(--font-display); }
+.t-code { font-size: 15px; color: var(--muted); }
+.t-body { padding: 22px; }
+.t-foot { padding: 6px 22px 10px; border-top: 2px dashed var(--line); }
+
+/* controls */
+.field { display: grid; gap: 6px; margin-bottom: 18px; }
+label, legend { font-weight: 600; font-size: 15px; padding: 0; }
+input[type="number"], input[type="text"], select, textarea {
+  width: 100%; min-height: 50px; padding: 10px 14px; border-radius: 12px; border: 1.5px solid var(--line);
+  background: var(--bg); color: var(--ink); font: 400 17px var(--font-body);
+}
+textarea { min-height: 90px; resize: vertical; font-size: 15px; }
+input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid var(--accent-soft); border-color: var(--accent); outline-offset: 0; }
+fieldset { border: 0; padding: 0; margin: 0 0 18px; min-width: 0; }
+.seg { display: grid; grid-template-columns: repeat(var(--n, 2), 1fr); gap: 8px; margin-top: 8px; }
+.seg.three { --n: 3; }
+.seg label { position: relative; font-weight: 500; font-size: 15px; }
+.seg input { position: absolute; opacity: 0; inset: 0; cursor: pointer; }
+.seg span { display: grid; place-items: center; text-align: center; min-height: 48px; padding: 6px 8px; border: 1.5px solid var(--line); border-radius: 12px; background: var(--bg); line-height: 1.35; }
+.seg input:checked + span { border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+.seg input:focus-visible + span { outline: 3px solid var(--accent); outline-offset: 2px; }
+.quick { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { font: 400 14px var(--font-body); color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 999px; padding: 4px 14px; min-height: 36px; cursor: pointer; }
+.chip:hover { border-color: var(--accent); background: var(--accent-soft); }
+.chip.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.hint { font-size: 14px; color: var(--muted); }
+.err { color: var(--warn); min-height: 1.2em; }
+details.more { margin-bottom: 18px; }
+details.more summary { cursor: pointer; font-size: 15px; font-weight: 600; color: var(--muted); padding: 4px 0; list-style: none; min-height: 40px; display: flex; align-items: center; gap: 8px; }
+details.more summary::-webkit-details-marker { display: none; }
+details.more summary::before { content: "+"; font: 500 20px var(--font-mono); color: var(--accent); }
+details.more[open] summary::before { content: "−"; }
+details.more > div { padding-top: 10px; }
+
+.btn { display: inline-flex; align-items: center; justify-content: center; min-height: 52px; padding: 0 24px; border-radius: 12px; border: 1.5px solid var(--ink); background: transparent; color: var(--ink); font: 600 17px var(--font-body); cursor: pointer; text-decoration: none; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn.block-w { width: 100%; }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: .5; cursor: default; }
+.btn.small { min-height: 44px; padding: 0 16px; font-size: 15px; }
+.btn.ghost:hover { background: var(--accent-soft); }
+.btn.danger { border-color: var(--warn); color: var(--warn); }
+.linkbtn { background: none; border: 0; padding: 0; font: 600 15px var(--font-body); color: var(--accent); cursor: pointer; min-height: 40px; }
+.notice { margin-bottom: 18px; padding: 10px 14px; border-radius: 12px; background: var(--warn-soft); color: var(--warn); font-size: 14.5px; }
+
+/* deal view */
+.d-item { font-size: 22px; font-weight: 600; line-height: 1.4; overflow-wrap: anywhere; padding-inline-end: 96px; }
+.d-price { margin-top: 4px; font: 500 40px/1.2 var(--font-mono); }
+.d-price i { font: 400 15px var(--font-body); font-style: normal; color: var(--muted); margin-inline-start: 8px; }
+.d-split { margin-top: 6px; font-size: 14.5px; color: var(--muted); }
+.stamp { position: absolute; top: 76px; left: 18px; transform: rotate(-9deg); padding: 2px 16px 4px; border: 3px double currentColor; border-radius: 10px; font: 400 26px/1.3 var(--font-display); color: var(--accent); opacity: .92; pointer-events: none; }
+.stamp.warn { color: var(--warn); }
+.stamp.off { color: var(--muted); }
+.stamp.pop { animation: stamp .45s cubic-bezier(.2,.9,.3,1.2) both; }
+@keyframes stamp { from { transform: rotate(-9deg) scale(1.9); opacity: 0; } to { transform: rotate(-9deg) scale(1); opacity: .92; } }
+
+ol.stepper { list-style: none; margin: 26px 0 0; padding: 0; display: flex; }
+.stepper li { position: relative; flex: 1; min-width: 0; text-align: center; font-size: 13px; color: var(--muted); }
+.stepper .dot { display: grid; place-items: center; width: 28px; height: 28px; margin: 0 auto 6px; border-radius: 50%; border: 2px solid var(--line); background: var(--paper); font: 500 12px var(--font-mono); position: relative; z-index: 1; }
+.stepper li + li::after { content: ""; position: absolute; top: 13px; height: 2px; right: calc(-50% + 14px); width: calc(100% - 28px); background: var(--line); }
+.stepper li.done + li::after { background: var(--accent); }
+.stepper li.done .dot { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.stepper li.now .dot { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+.stepper li.now, .stepper li.done { color: var(--ink); font-weight: 600; }
+
+.status { margin-top: 20px; display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 12px; background: var(--accent-soft); font-weight: 600; }
+.status.warn { background: var(--warn-soft); color: var(--warn); }
+.status.off { background: var(--bg); color: var(--muted); }
+.status::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); flex: none; }
+.status.warn::before { background: var(--warn); }
+.status.off::before { background: var(--muted); }
+
+.sec { margin-top: 16px; padding: 14px; border: 1.5px dashed var(--line); border-radius: 14px; display: grid; gap: 10px; }
+.sec > b { font-size: 15px; }
+.sec.adm { border-style: solid; border-color: var(--ink); }
+.sec .field { margin: 0; }
+.amount { font: 500 28px/1.2 var(--font-mono); }
+.amount i { font: 400 14px var(--font-body); font-style: normal; color: var(--muted); margin-inline-start: 8px; }
+.pm { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; align-items: center; padding: 10px 12px; border-radius: 12px; background: var(--bg); }
+.pm .pm-bank { font-weight: 600; }
+.pm .pm-holder { font-size: 13.5px; color: var(--muted); }
+.pm .pm-num { grid-column: 1 / -1; font: 500 16px var(--font-mono); overflow-wrap: anywhere; }
+.pm .btn { grid-row: 1 / 3; grid-column: 2; }
+.stm { padding: 10px 12px; border-radius: 12px; background: var(--bg); font-size: 15px; }
+.stm small { display: block; color: var(--muted); font-size: 13px; font-weight: 600; }
+.ruling { padding: 12px 14px; border-radius: 12px; background: var(--ink); color: var(--bg); font-size: 15px; }
+.ruling small { display: block; opacity: .75; }
+.acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 14px; }
+.acts .btn { flex: 1 1 auto; }
+.share { margin-top: 16px; padding: 14px; border-radius: 14px; background: var(--bg); }
+.share > b { display: block; font-size: 15px; margin-bottom: 8px; }
+.linkrow { display: flex; gap: 8px; }
+.linkrow input { direction: ltr; text-align: left; font: 500 14px var(--font-mono); min-height: 46px; flex: 1; min-width: 0; background: var(--paper); }
+
+/* lists + admin */
+.block { margin-top: 28px; }
+.block h2 { font: 400 22px/1.3 var(--font-display); margin: 0 0 10px; display: flex; align-items: center; gap: 10px; }
+.dlist { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.dl-item { width: 100%; display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; align-items: center; text-align: right; padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--paper); color: var(--ink); font: 400 15px var(--font-body); cursor: pointer; min-height: 56px; }
+.dl-item:hover, .dl-item.sel { border-color: var(--accent); }
+.dl-name { min-width: 0; overflow-wrap: anywhere; font-weight: 600; }
+.dl-meta { grid-column: 1 / -1; font-size: 13px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.tag { padding: 0 10px; border-radius: 999px; background: var(--warn-soft); color: var(--warn); font-weight: 600; font-size: 12.5px; }
+.filters { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 14px; }
+.a-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 8px; }
+.a-head h1 { font-size: 42px; margin: 0; }
+.pm-edit { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--paper); }
+.pm-edit input { min-height: 46px; font-size: 16px; }
+.pm-edit .row { display: flex; justify-content: flex-end; }
+.pm-list { display: grid; gap: 10px; margin-bottom: 12px; }
+
+/* rules */
+.rules { list-style: none; margin: 40px 0 0; padding: 0; display: grid; gap: 14px; counter-reset: r; }
+.rules li { counter-increment: r; display: grid; grid-template-columns: 34px 1fr; gap: 12px; align-items: start; }
+.rules li::before { content: counter(r); display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--ink); color: var(--bg); font: 500 15px var(--font-mono); }
+.rules b { display: block; font-weight: 600; }
+.rules span { color: var(--muted); font-size: 15px; }
+footer { margin-top: 40px; padding-block: 24px 36px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; }
+
+@media (max-width: 420px) {
+  .seg.three { --n: 1; }
+  .d-item { padding-inline-end: 0; margin-top: 44px; }
+  .stamp { top: 70px; }
+}
+.theme-btn{width:36px;height:36px;border-radius:50%;border:1.5px solid var(--line);background:var(--paper);color:var(--ink);cursor:pointer;font-size:16px}
+.find{display:flex;gap:8px;margin-top:28px}.find input{direction:ltr;text-align:left;flex:1;min-width:0}
+.log{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:6px;font-size:14px}.log li{display:flex;justify-content:space-between;gap:10px;padding:6px 10px;border-radius:10px;background:var(--bg)}.log small{color:var(--muted);white-space:nowrap}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-top:14px}.stat{padding:12px;border-radius:14px;background:var(--paper);border:1px solid var(--line)}.stat b{display:block;font:500 22px/1.2 var(--font-mono);direction:ltr;text-align:right}.stat small{color:var(--muted);font-size:12.5px}
+.faq details{border-bottom:1px solid var(--line)}.faq summary{cursor:pointer;font-weight:600;min-height:46px;display:flex;align-items:center}.faq p{color:var(--muted);font-size:15px;padding-bottom:12px}
+.agree{display:flex;gap:10px;align-items:flex-start;font-size:14px;color:var(--muted);margin-bottom:14px}.agree input{margin-top:5px;width:18px;height:18px;accent-color:var(--accent)}
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+
+<div class="col" lang="ar" dir="rtl">
+  <header>
+    <button class="brand" id="brand" type="button" aria-label="الصفحة الرئيسية"><b>ضمان</b><small>Daman</small></button>
+    <div class="hd-r">
+      <button class="admin-btn" id="admin-btn" type="button" hidden>لوحة الإدارة <span class="count zero" id="admin-count">0</span></button>
+      <button class="theme-btn" id="theme-btn" type="button" aria-label="تبديل الوضع الليلي">◐</button><span class="fee-badge">10 دراهم للصفقة</span>
+    </div>
+  </header>
+
+  <!-- ===== main view ===== -->
+  <div id="view-main">
+    <h1>الفلوس عندنا <span>حتى تستلم</span></h1>
+    <p class="sub">وسيط بين البائع والمشتري. تفاهمتو فـ فيسبوك أو واتساب؟ دخّلنا بيناتكم ومحّال كاين نصب.</p>
+
+    <div class="ticket" id="ticket">
+      <div class="t-top">
+        <span class="t-title" id="t-title">وصل صفقة جديد</span>
+        <span class="t-code mono" id="t-code"></span>
+      </div>
+
+      <div class="t-body" id="mode-new">
+        <p class="notice" id="nf" role="status" hidden></p>
+        <p class="notice" id="db-notice" role="status" hidden></p>
+        <form id="deal-form" novalidate>
+          <fieldset>
+            <legend>أنا</legend>
+            <div class="seg">
+              <label><input type="radio" name="role" value="seller" checked><span>بائع</span></label>
+              <label><input type="radio" name="role" value="buyer"><span>مشتري</span></label>
+            </div>
+          </fieldset>
+          <div class="field">
+            <label for="item">شنو الصفقة؟</label>
+            <input id="item" type="text" placeholder="مثال: حساب Free Fire مستوى 62" autocomplete="off">
+            <div class="quick" id="quick">
+              <button type="button" class="chip" data-v="حساب Free Fire">Free Fire</button>
+              <button type="button" class="chip" data-v="حساب PUBG">PUBG</button>
+              <button type="button" class="chip" data-v="شحن جواهر">شحن جواهر</button>
+              <button type="button" class="chip" data-v="حساب إنستغرام">إنستغرام</button>
+            </div>
+          </div>
+          <div class="field">
+            <label for="price2">الثمن (درهم)</label>
+            <input id="price2" type="number" inputmode="numeric" min="1" step="1" placeholder="350">
+            <span class="hint" id="fee-hint">دخّل الثمن باش تشوف شحال غادي يدفع المشتري.</span>
+          </div>
+          <details class="more">
+            <summary>خيارات إضافية</summary>
+            <div>
+              <fieldset>
+                <legend>شكون كيخلص العمولة؟</legend>
+                <div class="seg three">
+                  <label><input type="radio" name="fee" value="buyer" checked><span>المشتري</span></label>
+                  <label><input type="radio" name="fee" value="seller"><span>البائع</span></label>
+                  <label><input type="radio" name="fee" value="split"><span>نص بنص</span></label>
+                </div>
+              </fieldset>
+              <div class="field" style="margin-bottom:0">
+                <label for="contact">حساب الطرف الآخر</label>
+                <input id="contact" type="text" placeholder="رقم الواتساب أو رابط فيسبوك" autocomplete="off">
+              </div>
+            </div>
+          </details>
+          <label class="agree"><input type="checkbox" id="agree"><span>كنوافق أن Daman ما كيقبلش المنتوجات الممنوعة أو المخالفة للقانون، وأن قرار الإدارة فـ الشكايات نهائي.</span></label>
+          <p class="hint err" id="err" role="alert"></p>
+          <button class="btn primary block-w" type="submit" id="create-btn">أنشئ الصفقة</button>
+        </form>
+      </div>
+
+      <div class="t-body" id="mode-deal" hidden></div>
+
+      <div class="t-foot" id="t-foot" hidden>
+        <button class="linkbtn" id="new-btn" type="button">صفقة جديدة</button>
+      </div>
+    </div>
+
+    <div class="block" id="list-wrap" hidden>
+      <h2>صفقاتي</h2>
+      <ul class="dlist" id="deal-list"></ul>
+    </div>
+
+    <form class="find" id="find-form" novalidate><input id="find-code" type="text" placeholder="عندك رقم صفقة؟ DM-12345" autocomplete="off" aria-label="رقم الصفقة"><button class="btn ghost small" type="submit">افتح</button></form>
+    <p class="hint err" id="find-err" role="alert"></p>
+    <ol class="rules">
+      <li><div><b>المشتري كيدفع لـ Daman</b><span>الفلوس ما كتمشيش للبائع قبل ما تسالي الصفقة.</span></div></li>
+      <li><div><b>البائع كيسلّم وهو مطمئن</b><span>كيشوف أن الفلوس واجدة، وكيسلّم الحساب أو المنتوج.</span></div></li>
+      <li><div><b>المشتري كيأكد، والفلوس كتوصل للبائع</b><span>إلا كان مشكل، Daman كيحكم بين الطرفين.</span></div></li>
+    </ol>
+  </div>
+
+  <!-- ===== admin view ===== -->
+  <div id="view-admin" hidden>
+    <div class="a-head"><h1>لوحة الإدارة</h1><button class="btn ghost small" id="back-btn" type="button">رجوع</button></div>
+    <div class="stats" id="a-stats"></div>
+    <div class="filters" id="a-filters" role="tablist"></div>
+    <ul class="dlist" id="a-list"></ul>
+    <p class="hint" id="a-empty" hidden>ما كاين حتى صفقة هنا.</p>
+
+    <div class="ticket" id="a-ticket" hidden>
+      <div class="t-top">
+        <span class="t-title">قرار الإدارة</span>
+        <span class="t-code mono" id="a-code"></span>
+      </div>
+      <div class="t-body" id="a-deal"></div>
+    </div>
+
+    <div class="block">
+      <h2>طرق الدفع</h2>
+      <p class="hint" style="margin-bottom:10px">هادو هما الحسابات اللي كيبانو للمشتري باش يدفع.</p>
+      <div class="pm-list" id="pm-list"></div>
+      <div class="field"><label for="support-in">رقم واتساب الدعم (دولي، مثال 2126XXXXXXXX)</label><input id="support-in" type="text" inputmode="tel" class="mono" autocomplete="off"></div>
+      <datalist id="banks">
+        <option value="CIH Bank"><option value="Attijariwafa Bank"><option value="Banque Populaire"><option value="Bank of Africa"><option value="Société Générale"><option value="Crédit Agricole du Maroc"><option value="Al Barid Bank"><option value="Cash Plus"><option value="Wafacash">
+      </datalist>
+      <div class="acts" style="margin-top:0">
+        <button class="btn ghost small" id="pm-add" type="button">زيد حساب</button>
+        <button class="btn primary small" id="pm-save" type="button">حفظ</button>
+      </div>
+      <p class="hint" id="pm-msg" style="margin-top:8px"></p>
+    </div>
+  </div>
+
+  <div class="block faq" id="faq">
+    <h2>أسئلة كيتكرّرو</h2>
+    <details><summary>شنو كيوقع إلا البائع ما سلّمش؟</summary><p>المشتري كيفتح شكاية، وDaman كيقرا روايات الطرفين وكيرجّع الفلوس للمشتري إلا تبت أن البائع ما سلّمش.</p></details>
+    <details><summary>شحال كياخد Daman؟</summary><p>10 دراهم للصفقة كيفما كان الثمن. كتختار شكون كيخلصها: المشتري، البائع، أو نص بنص.</p></details>
+    <details><summary>واش نقدر نلغي الصفقة؟</summary><p>إيه، قبل ما المشتري يدفع. من بعد الدفع كتبقى الفلوس عند Daman حتى يتأكد الاستلام أو تتحكم الشكاية.</p></details>
+    <details><summary>شكون كيقدر يدير شنو فـ الصفقة؟</summary><p>غير المشتري كيدفع وكيأكد الاستلام، وغير البائع كيسلّم وكيعطي معلومات الاستلام. الطرف الآخر كيدخل بالرابط.</p></details>
+    <div class="acts"><a class="btn primary small" id="support" target="_blank" rel="noopener noreferrer" hidden>كلّم الدعم فـ واتساب</a></div>
+  </div>
+  <footer>Daman · العمولة 10 دراهم للصفقة كيفما كان الثمن. <button class="linkbtn" id="adm-login" type="button">دخول الإدارة</button></footer>
+</div>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var FEE = 10;
+  var BASE = location.href.split("#")[0];
+  var STEPS = ["اتفاق", "دفع", "تسليم", "تأكيد", "تحويل"];
+  var whoLabel = { buyer: "المشتري", seller: "البائع", split: "نص بنص" };
+  var sideLabel = { buyer: "المشتري", seller: "البائع" };
+
+  var db = null, uid = "", isAdmin = false;
+  var methods = [], draft = [], dirty = false, support = "", qa = [], qb = [];
+  var allDeals = [], filter = "needs";
+  var M = { body: null, title: null, code: null, admin: false, unsub: null, cur: null, stamp: "" };   // main ticket
+  var A = { body: null, title: null, code: null, admin: true, unsub: null, cur: null, stamp: "" };    // admin ticket
+
+  function dealLink(code) { return BASE + "#" + code; }
+  function shares(m) { return m === "buyer" ? [FEE, 0] : m === "seller" ? [0, FEE] : [FEE / 2, FEE / 2]; }
+  function fmt(n) { return (Math.round(n * 100) / 100).toString(); }
+  function el(tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+  function setNotice(t) { var n = $("db-notice"); n.textContent = t || ""; n.hidden = !t; }
+  function errText(e) {
+    var c = e && e.code;
+    if (c === "forbidden") return "ما عندكش صلاحية الإدارة.";
+    if (c === "invalid_argument") return "المعلومات ناقصة ولا غالطة. تأكد من الوصف والثمن.";
+    if (c === "config") return "قاعدة البيانات ماشي مربوطة بالمشروع (Upstash).";
+    if (c === "redis") return "القاعدة ما جاوباتش. تأكد من ربط Upstash.";
+    if (c === "http404") return "ملف api/db.js ماشي فـ بلاصتو.";
+    if (c === "quota_exceeded") return "وصلات الحد الأقصى ديال الصفقات.";
+    return "وقع مشكل فـ الحفظ (" + ((e && e.code) || "network") + "). عاود جرّب.";
+  }
+  function ago(t) {
+    if (!t) return "";
+    var m = Math.max(0, Math.round((Date.now() - t) / 60000));
+    if (m < 1) return "دابا";
+    if (m < 60) return "قبل " + m + " د";
+    var h = Math.round(m / 60);
+    if (h < 24) return "قبل " + h + " س";
+    return "قبل " + Math.round(h / 24) + " يوم";
+  }
+  function myRole(d) { if (!uid) return ""; if (d.createdBy === uid) return d.role; if (d.counterparty === uid) return d.role === "seller" ? "buyer" : "seller"; return ""; }
+  function evtText(p) {
+    if (p.ruling) return "قرار Daman: الحكم لـ" + sideLabel[p.ruling.for];
+    if (p.state === "cancelled") return "تلغات الصفقة";
+    if (p.state === "disputed") return "تفتحات شكاية";
+    if (p.counterparty) return "الطرف الآخر دخل للصفقة";
+    if (p.payClaim) return "المشتري سجّل الدفع";
+    if (p.payRejected) return "Daman ما لقاش الدفع";
+    if (p.stage === 2) return "Daman أكّد وصول الفلوس";
+    if (p.stage === 3) return "البائع سلّم";
+    if (p.stage === 4) return "المشتري أكّد الاستلام";
+    if (p.stage === 5) return "تحوّلات الفلوس للبائع";
+    return "";
+  }
+  function patchDeal(code, patch) {
+    var cur = (M.cur && M.cur.code === code && M.cur) || (A.cur && A.cur.code === code && A.cur) || {}, t = evtText(patch);
+    var u = Object.assign({ updatedAt: Date.now() }, patch);
+    if (t) u.log = (cur.log || []).concat([{ t: t, at: Date.now() }]).slice(-30);
+    return db.doc("deals/" + code).update(u);
+  }
+  function copyText(text, note, input) {
+    function fb() { if (input) { input.focus(); input.select(); } note.textContent = "تحدد النص، نسخو بيديك."; }
+    try { navigator.clipboard.writeText(text).then(function () { note.textContent = "تنسخ."; }, fb); } catch (x) { fb(); }
+  }
+  function mkBtn(label, kind, fn, msg) {
+    var b = el("button", "btn small " + (kind || "primary"), label); b.type = "button";
+    b.addEventListener("click", function () {
+      b.disabled = true; msg.textContent = "";
+      Promise.resolve().then(fn).catch(function (e) { msg.textContent = errText(e); }).then(function () { b.disabled = false; });
+    });
+    return b;
+  }
+  function labeled(text, input) { var f = el("div", "field"); var l = el("label", null, text); if (input.id) l.htmlFor = input.id; f.appendChild(l); f.appendChild(input); return f; }
+  var uidc = 0;
+  function mkInput(ph, mono) { var i = el("input"); i.type = "text"; i.id = "x" + (++uidc); i.placeholder = ph || ""; if (mono) i.className = "mono"; i.autocomplete = "off"; return i; }
+  function mkArea(ph) { var i = el("textarea"); i.id = "x" + (++uidc); i.placeholder = ph || ""; return i; }
+
+  /* ----- deal status model ----- */
+  function stateInfo(d) {
+    var st = d.state || "open", pos = d.stage || 1;
+    if (st === "cancelled") return { t: "الصفقة تلغات", c: "off", stamp: "ملغاة" };
+    if (st === "refunded") return { t: "الفلوس رجعات للمشتري", c: "off", stamp: "مرجّعة" };
+    if (st === "disputed") return { t: "كاينة شكاية، Daman كيحكم بين الطرفين", c: "warn", stamp: "تحكيم" };
+    if (pos <= 1) return d.payClaim ? { t: "Daman كيتأكد من الدفع", c: "", stamp: "" } : { t: "كيتسنّا دفع المشتري", c: "", stamp: "" };
+    if (pos === 2) return { t: "الفلوس عند Daman. البائع كيسلّم دابا", c: "", stamp: "مضمون" };
+    if (pos === 3) return { t: "كيتسنّا المشتري يأكد الاستلام", c: "", stamp: "مضمون" };
+    if (pos === 4) return { t: "كيتسنّا Daman يحوّل الفلوس للبائع", c: "", stamp: "مضمون" };
+    return { t: "الصفقة كملات والفلوس وصلات للبائع", c: "", stamp: "تمّت" };
+  }
+  function needsReason(d) {
+    var st = d.state || "open", pos = d.stage || 1;
+    if (st === "disputed") return "تحكيم";
+    if (st === "open" && pos === 1 && d.payClaim) return "تأكيد الدفع";
+    if (st === "open" && pos === 4) return "تحويل للبائع";
+    return "";
+  }
+  function bucket(d) {
+    if (needsReason(d)) return "needs";
+    var st = d.state || "open", pos = d.stage || 1;
+    if (st === "open" && pos < 5) return "wait";
+    return "done";
+  }
+  var FILTERS = [["needs", "تحتاج قرار"], ["wait", "جارية"], ["done", "منتهية"], ["all", "الكل"]];
+
+  /* ----- deal ticket renderer (used by both views) ----- */
+  function sec(title, admin) { var s = el("div", "sec" + (admin ? " adm" : "")); if (title) s.appendChild(el("b", null, title)); return s; }
+  function statementBox(d) {
+    var box = el("div"), any = false;
+    ["buyer", "seller"].forEach(function (k) {
+      var s = d.disputes && d.disputes[k];
+      if (s && s.text) { any = true; var p = el("div", "stm"); p.appendChild(el("small", null, "رواية " + sideLabel[k])); p.appendChild(el("span", null, s.text)); box.appendChild(p); box.lastChild.style.marginTop = "8px"; }
+    });
+    return any ? box : null;
+  }
+
+  function renderDeal(d, T) {
+    T.cur = d;
+    var v = T.body; v.innerHTML = "";
+    T.title.textContent = T.admin ? "قرار الإدارة" : "وصل صفقة"; T.code.textContent = d.code;
+    var pos = d.stage || 1, state = d.state || "open", sh = shares(d.fee), info = stateInfo(d);
+    var buyerPays = d.price + sh[0], sellerGets = Math.max(0, d.price - sh[1]);
+    var msg = el("p", "hint err"), role = T.admin ? "" : myRole(d);
+
+    if (info.stamp) {
+      var key = d.code + info.stamp;
+      v.appendChild(el("div", "stamp " + (info.c || "") + (key !== T.stamp ? " pop" : ""), info.stamp));
+      T.stamp = key;
+    }
+    v.appendChild(el("p", "d-item", d.item));
+    var pr = el("p", "d-price mono", fmt(d.price)); pr.appendChild(el("i", null, "درهم")); v.appendChild(pr);
+    v.appendChild(el("p", "d-split", "المشتري كيدفع " + fmt(buyerPays) + " درهم · البائع كيوصلو " + fmt(sellerGets) + " درهم · العمولة " + whoLabel[d.fee]));
+    if (d.contact) v.appendChild(el("p", "d-split", "الطرف الآخر: " + d.contact));
+    if (role) v.appendChild(el("p", "d-split", "نتا فـ هاد الصفقة: " + sideLabel[role]));
+
+    var ol = el("ol", "stepper"), frozen = state === "cancelled" || state === "refunded";
+    STEPS.forEach(function (s, i) {
+      var li = el("li", i < pos ? "done" : (i === pos && !frozen ? "now" : ""));
+      var dot = el("span", "dot");
+      if (i < pos) dot.innerHTML = '<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      else dot.textContent = String(i + 1);
+      li.appendChild(dot); li.appendChild(el("span", null, s)); ol.appendChild(li);
+    });
+    v.appendChild(ol);
+    v.appendChild(el("p", "status " + (info.c || ""), info.t));
+
+    if (d.ruling) {
+      var rl = el("div", "ruling"); rl.style.marginTop = "12px";
+      rl.appendChild(el("small", null, "قرار Daman: الحكم لـ" + sideLabel[d.ruling.for]));
+      rl.appendChild(el("span", null, d.ruling.note || ""));
+      v.appendChild(rl);
+    }
+
+    if (d.delivery) { var dv = sec("تفاصيل التسليم"); dv.appendChild(el("p", "stm", d.delivery)); v.appendChild(dv); }
+    if (!T.admin && !role && uid && (state === "open" || state === "disputed")) {
+      if (!d.counterparty) {
+        var js = sec("انضم لهاد الصفقة"), other = d.role === "seller" ? "buyer" : "seller";
+        js.appendChild(el("p", "hint", "صاحب الصفقة هو " + sideLabel[d.role] + ". إلا نتا " + sideLabel[other] + "، ضغط باش تدخل وتبانو ليك الخطوات ديالك."));
+        js.appendChild(mkBtn("انضم كـ" + sideLabel[other], "primary", function () { return patchDeal(d.code, { counterparty: uid }); }, msg));
+        v.appendChild(js);
+      } else if (!isAdmin) v.appendChild(el("p", "notice", "هاد الصفقة عندها طرفين وما نتا واحد منهم. تقدر غير تشوفها."));
+    }
+    /* ---------- buyer: payment ---------- */
+    if (!T.admin && state === "open" && pos === 1 && role === "buyer") {
+      var ps = sec("دفع المشتري لـ Daman");
+      if (d.payClaim) {
+        ps.appendChild(el("p", "hint", "تسجّل الدفع ديالك: " + d.payClaim.method + " · " + d.payClaim.ref + ". كنتسناو نتأكدو منو."));
+      } else {
+        var am = el("p", "amount mono", fmt(buyerPays)); am.appendChild(el("i", null, "درهم")); ps.appendChild(am);
+        if (d.payRejected) ps.appendChild(el("p", "hint err", "Daman ما لقاش الدفع. تأكد من المعلومات وعاود سجّلو."));
+        if (!methods.length) ps.appendChild(el("p", "hint", "Daman ما حدّدش حسابات الدفع بعد."));
+        methods.forEach(function (m) {
+          var c = el("div", "pm");
+          c.appendChild(el("span", "pm-bank", m.bank));
+          var cb = el("button", "btn ghost small", "نسخ"); cb.type = "button";
+          c.appendChild(cb);
+          if (m.holder) c.appendChild(el("span", "pm-holder", m.holder));
+          c.appendChild(el("span", "pm-num", m.number));
+          var note = el("span", "hint");
+          cb.addEventListener("click", function () { copyText(m.number, cb.parentNode.querySelector(".pm-note") || (function () { var n = el("span", "hint pm-note"); c.appendChild(n); return n; })()); });
+          ps.appendChild(c);
+        });
+        ps.appendChild(el("p", "hint", "كتب رقم الصفقة " + d.code + " فـ ملاحظة التحويل."));
+        var sel = el("select"); sel.id = "x" + (++uidc);
+        methods.forEach(function (m) { var o = el("option", null, m.bank); o.value = m.bank; sel.appendChild(o); });
+        var oo = el("option", null, "وسيلة أخرى"); oo.value = "أخرى"; sel.appendChild(oo);
+        var ref = mkInput("اسم المرسل أو مرجع التحويل");
+        ps.appendChild(labeled("دفعتي بشنو؟", sel)); ps.appendChild(labeled("اسم المرسل أو مرجع التحويل", ref));
+        var pm2 = el("p", "hint err");
+        ps.appendChild(mkBtn("دفعت، تأكدو ليا", "primary", function () {
+          if (!ref.value.trim()) { pm2.textContent = "كتب اسم المرسل أو مرجع التحويل."; return; }
+          return patchDeal(d.code, { payClaim: { method: sel.value, ref: ref.value.trim(), at: Date.now() }, payRejected: false });
+        }, pm2));
+        ps.appendChild(pm2);
+      }
+      v.appendChild(ps);
+    }
+
+    /* ---------- seller: payout ---------- */
+    if (!T.admin && state === "open" && pos >= 2 && pos <= 4 && role === "seller") {
+      var po = sec("فين نحوّلو الفلوس للبائع؟");
+      var pin = mkArea("مثال: RIB ديال البنك، أو رقم Cash Plus مع الاسم الكامل"); pin.value = d.payout || "";
+      po.appendChild(labeled("معلومات الاستلام (للبائع)", pin));
+      var pmsg = el("p", "hint err");
+      po.appendChild(mkBtn("حفظ", "ghost", function () { return patchDeal(d.code, { payout: pin.value.trim() }); }, pmsg));
+      po.appendChild(pmsg); v.appendChild(po);
+    }
+
+    /* ---------- statements ---------- */
+    var stm = statementBox(d);
+    if (stm && (state === "disputed" || d.ruling)) { var ss = sec("روايات الطرفين"); ss.appendChild(stm); v.appendChild(ss); }
+
+    /* ---------- dispute form (parties) ---------- */
+    if (!T.admin && role && (state === "disputed" || (state === "open" && (pos === 2 || pos === 3)))) {
+      var det = el("details", "more"); det.style.marginTop = "14px"; det.style.marginBottom = "0"; if (state === "disputed") det.open = true;
+      det.appendChild(el("summary", null, state === "disputed" ? "زيد روايتك" : "عندك مشكل؟ افتح شكاية"));
+      var inner = el("div");
+      var sd = el("select"); sd.id = "x" + (++uidc);
+      [["buyer", "أنا المشتري"], ["seller", "أنا البائع"]].forEach(function (o) { var op = el("option", null, o[1]); op.value = o[0]; sd.appendChild(op); });
+      var why = mkArea("شرح المشكل، وشنو وقع بالضبط.");
+      sd.value = role; sd.disabled = true;
+      inner.appendChild(labeled("شكون نتا؟", sd)); inner.appendChild(el("div")); inner.lastChild.style.height = "12px";
+      inner.appendChild(labeled("شنو المشكل؟", why));
+      var dm = el("p", "hint err");
+      var db2 = mkBtn(state === "disputed" ? "حفظ الرواية" : "ابعت الشكاية", "danger", function () {
+        if (!why.value.trim()) { dm.textContent = "كتب شنو المشكل."; return; }
+        var o = {}; o[sd.value] = { text: why.value.trim(), at: Date.now() };
+        return patchDeal(d.code, { state: "disputed", disputes: o });
+      }, dm);
+      var rw = el("div", "acts"); rw.appendChild(db2); inner.appendChild(rw); inner.appendChild(dm);
+      det.appendChild(inner); v.appendChild(det);
+    }
+
+    /* ---------- party actions ---------- */
+    var acts = el("div", "acts"), wait = "";
+    if (!T.admin && state === "open") {
+      if (pos === 1 && role) acts.appendChild(mkBtn("إلغاء الصفقة", "ghost", function () { return patchDeal(d.code, { state: "cancelled" }); }, msg));
+      if (pos === 2 && role === "seller") {
+        var dn = mkArea("كيفاش سلّمتي؟ مثال: عطيت الإيميل والباسورد فـ واتساب"); dn.style.minHeight = "70px";
+        v.appendChild(labeled("تفاصيل التسليم (اختياري)", dn));
+        acts.appendChild(mkBtn("البائع سلّم المنتوج", "primary", function () { return patchDeal(d.code, { stage: 3, delivery: dn.value.trim() }); }, msg));
+      }
+      if (pos === 3 && role === "buyer") acts.appendChild(mkBtn("المشتري أكّد الاستلام", "primary", function () { return patchDeal(d.code, { stage: 4 }); }, msg));
+      if (pos === 1 && d.payClaim) wait = "كيتسنّا Daman يتأكد من الدفع.";
+      else if (pos === 1 && role === "seller") wait = "كيتسنّا المشتري يدفع لـ Daman.";
+      if (pos === 2 && role === "buyer") wait = "كيتسنّا البائع يسلّم ليك.";
+      if (pos === 3 && role === "seller") wait = "كيتسنّا المشتري يأكد الاستلام.";
+      if (pos === 4) wait = "كيتسنّا Daman يحوّل الفلوس للبائع.";
+    }
+    if (!T.admin && isAdmin && (needsReason(d))) {
+      var go = el("button", "linkbtn", "حلّها فلوحة الإدارة"); go.type = "button";
+      go.addEventListener("click", function () { showAdmin(); openAdminDeal(d.code); });
+      acts.appendChild(go);
+    }
+    if (wait) acts.appendChild(el("span", "hint", wait));
+    if (acts.childNodes.length) v.appendChild(acts);
+
+    /* ---------- admin panel ---------- */
+    if (T.admin) {
+      var ad = sec("اللي خاصك دير", true);
+      var am2 = el("p", "hint err"), aacts = el("div", "acts"); aacts.style.marginTop = "0";
+      if (d.payout) { var pw = el("div", "stm"); pw.appendChild(el("small", null, "معلومات استلام البائع")); pw.appendChild(el("span", null, d.payout)); ad.appendChild(pw); }
+      if (state === "open" && pos === 1) {
+        if (d.payClaim) {
+          var cl = el("div", "stm"); cl.appendChild(el("small", null, "المشتري كيقول أنه دفع"));
+          cl.appendChild(el("span", null, d.payClaim.method + " · " + d.payClaim.ref + " · المبلغ المنتظر " + fmt(buyerPays) + " درهم")); ad.appendChild(cl);
+          aacts.appendChild(mkBtn("الفلوس وصلات، أكّد", "primary", function () { return patchDeal(d.code, { stage: 2, payRejected: false }); }, am2));
+          aacts.appendChild(mkBtn("ما وصلاتش", "danger", function () { return patchDeal(d.code, { payClaim: null, payRejected: true }); }, am2));
+        } else {
+          ad.appendChild(el("p", "hint", "المشتري ما سجّلش دفعو بعد. إلا وصلات الفلوس بيدك، تقدر تأكدها."));
+          aacts.appendChild(mkBtn("تأكيد وصول الدفع", "ghost", function () { return patchDeal(d.code, { stage: 2 }); }, am2));
+        }
+        aacts.appendChild(mkBtn("إلغاء الصفقة", "ghost", function () { return patchDeal(d.code, { state: "cancelled" }); }, am2));
+      } else if (state === "open" && (pos === 2 || pos === 3)) {
+        ad.appendChild(el("p", "hint", "الفلوس عندك. كتسنّا التسليم والتأكيد من الطرفين."));
+        aacts.appendChild(mkBtn("رجّع الفلوس للمشتري", "danger", function () { return patchDeal(d.code, { state: "refunded", ruling: { for: "buyer", note: "رجعات الفلوس للمشتري.", at: Date.now() } }); }, am2));
+      } else if (state === "open" && pos === 4) {
+        if (!d.payout) ad.appendChild(el("p", "hint err", "البائع ما عطاش فين نحوّلو ليه الفلوس بعد."));
+        else ad.appendChild(el("p", "hint", "حوّل " + fmt(sellerGets) + " درهم للبائع، ومن بعد ضغط الزر."));
+        aacts.appendChild(mkBtn("تم التحويل للبائع", "primary", function () { return patchDeal(d.code, { stage: 5 }); }, am2));
+      } else if (state === "disputed") {
+        ad.appendChild(el("p", "hint", "قرا الروايات اللي لفوق، كتب سبب القرار، واختار."));
+        var note = mkArea("سبب القرار (كيبان للطرفين)");
+        ad.appendChild(labeled("سبب القرار", note));
+        aacts.appendChild(mkBtn("الحكم للمشتري: رجّع الفلوس", "danger", function () {
+          if (!note.value.trim()) { am2.textContent = "كتب سبب القرار."; return; }
+          return patchDeal(d.code, { state: "refunded", ruling: { for: "buyer", note: note.value.trim(), at: Date.now() } });
+        }, am2));
+        aacts.appendChild(mkBtn("الحكم للبائع: حوّل الفلوس", "primary", function () {
+          if (!note.value.trim()) { am2.textContent = "كتب سبب القرار."; return; }
+          return patchDeal(d.code, { state: "open", stage: 4, ruling: { for: "seller", note: note.value.trim(), at: Date.now() } });
+        }, am2));
+      } else {
+        ad.appendChild(el("p", "hint", "ما كاين والو خاصك دير فهاد الصفقة."));
+      }
+      if (aacts.childNodes.length) ad.appendChild(aacts);
+      ad.appendChild(am2); v.appendChild(ad);
+    }
+
+    if (d.log && d.log.length) {
+      var lg = el("details", "more"); lg.style.marginTop = "14px"; lg.style.marginBottom = "0";
+      lg.appendChild(el("summary", null, "سجل الصفقة (" + d.log.length + ")"));
+      var ul2 = el("ul", "log");
+      d.log.slice().reverse().forEach(function (e) { var l2 = el("li"); l2.appendChild(el("span", null, e.t)); l2.appendChild(el("small", null, ago(e.at))); ul2.appendChild(l2); });
+      lg.appendChild(ul2); v.appendChild(lg);
+    }
+    v.appendChild(msg);
+
+    /* ---------- share link (main view) ---------- */
+    if (!T.admin && (state === "open" || state === "disputed")) {
+      var sh2 = el("div", "share");
+      sh2.appendChild(el("b", null, "صيفط هاد الرابط للطرف الآخر"));
+      var link = dealLink(d.code), lr = el("div", "linkrow");
+      var li = el("input"); li.type = "text"; li.readOnly = true; li.value = link; li.setAttribute("aria-label", "رابط الصفقة");
+      li.addEventListener("focus", function () { li.select(); });
+      var cp = el("button", "btn ghost small", "نسخ"); cp.type = "button";
+      lr.appendChild(li); lr.appendChild(cp); sh2.appendChild(lr);
+      var cpm = el("p", "hint"); cp.addEventListener("click", function () { copyText(link, cpm, li); });
+      var wa = el("div", "acts");
+      var a = el("a", "btn small primary", "صيفطو فـ واتساب");
+      var text = "سلام، غادي نديرو الصفقة عبر Daman باش الفلوس تكون مضمونة.\nالمنتوج: " + d.item + "\nالثمن: " + fmt(d.price) + " درهم\nحل هاد الرابط باش تشوف الصفقة:\n" + link;
+      a.href = "https://wa.me/?text=" + encodeURIComponent(text); a.target = "_blank"; a.rel = "noopener noreferrer";
+      wa.appendChild(a); sh2.appendChild(wa); sh2.appendChild(cpm); v.appendChild(sh2);
+    }
+  }
+
+  /* ----- main view: modes ----- */
+  function showForm() {
+    if (M.unsub) { M.unsub(); M.unsub = null; }
+    M.cur = null;
+    $("mode-new").hidden = false; $("mode-deal").hidden = true; $("t-foot").hidden = true;
+    $("t-title").textContent = "وصل صفقة جديد"; $("t-code").textContent = "";
+  }
+  function openDeal(code) {
+    if (!db) return;
+    showMain();
+    if (M.unsub) { M.unsub(); M.unsub = null; }
+    $("nf").hidden = true;
+    M.unsub = db.doc("deals/" + code).onSnapshot(function (s) {
+      if (!s.exists) { showForm(); $("nf").textContent = "ما لقينا هاد الصفقة. تأكد من الرابط."; $("nf").hidden = false; return; }
+      $("nf").hidden = true;
+      $("mode-new").hidden = true; $("mode-deal").hidden = false; $("t-foot").hidden = false;
+      renderDeal(s.data(), M);
+    }, function () { $("nf").textContent = "ما قدرناش نحلو الصفقة."; $("nf").hidden = false; });
+  }
+  function showMain() { $("view-main").hidden = false; $("view-admin").hidden = true; }
+  function showAdmin() { if (!isAdmin) return; $("view-main").hidden = true; $("view-admin").hidden = false; renderAdminList(); }
+  function openAdminDeal(code) {
+    if (!db || !isAdmin) return;
+    if (A.unsub) { A.unsub(); A.unsub = null; }
+    $("a-ticket").hidden = false; A.selected = code; renderAdminList();
+    A.unsub = db.doc("deals/" + code).onSnapshot(function (s) {
+      if (!s.exists) { $("a-ticket").hidden = true; return; }
+      renderDeal(s.data(), A);
+    }, function () {});
+    $("a-ticket").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  /* ----- lists ----- */
+  function rowButton(d, onClick, extra) {
+    var li = el("li"), b = el("button", "dl-item" + (extra && A.selected === d.code ? " sel" : "")); b.type = "button";
+    b.appendChild(el("span", "dl-name", d.item));
+    b.appendChild(el("span", "mono", fmt(d.price) + " DH"));
+    var m = el("span", "dl-meta"); m.appendChild(el("span", "mono", d.code));
+    var nr = needsReason(d);
+    m.appendChild(nr ? el("span", "tag", nr) : el("span", null, stateInfo(d).t));
+    m.appendChild(el("span", null, ago(d.updatedAt || d.createdAt)));
+    b.appendChild(m); b.addEventListener("click", onClick); li.appendChild(b); return li;
+  }
+  function renderList() {
+    var ul = $("deal-list"); ul.innerHTML = "";
+    var mine = allDeals.filter(function (d) { return uid && myRole(d); });
+    $("list-wrap").hidden = mine.length === 0;
+    mine.forEach(function (d) { ul.appendChild(rowButton(d, function () { openDeal(d.code); $("ticket").scrollIntoView({ behavior: "smooth", block: "start" }); })); });
+  }
+  function renderAdminList() {
+    if (!isAdmin) return;
+    var counts = { needs: 0, wait: 0, done: 0, all: allDeals.length };
+    allDeals.forEach(function (d) { counts[bucket(d)]++; });
+    var ab = $("admin-count"); ab.textContent = String(counts.needs); ab.className = "count" + (counts.needs ? "" : " zero");
+    var held = 0, earned = 0, ok = 0;
+    allDeals.forEach(function (d) { var st = d.state || "open", p = d.stage || 1; if ((st === "open" || st === "disputed") && p >= 2 && p < 5) held += d.price + shares(d.fee)[0]; if (st === "open" && p >= 5) { ok++; earned += FEE; } });
+    var sb = $("a-stats"); sb.innerHTML = "";
+    [[fmt(held), "فلوس عندنا (درهم)"], [fmt(earned), "عمولات (درهم)"], [String(ok), "صفقات تمّت"]].forEach(function (x) { var c = el("div", "stat"); c.appendChild(el("b", null, x[0])); c.appendChild(el("small", null, x[1])); sb.appendChild(c); });
+    var f = $("a-filters"); f.innerHTML = "";
+    FILTERS.forEach(function (x) {
+      var b = el("button", "chip" + (filter === x[0] ? " on" : ""), x[1] + " (" + counts[x[0]] + ")"); b.type = "button";
+      b.addEventListener("click", function () { filter = x[0]; renderAdminList(); });
+      f.appendChild(b);
+    });
+    var ul = $("a-list"); ul.innerHTML = "";
+    var rows = allDeals.filter(function (d) { return filter === "all" || bucket(d) === filter; });
+    $("a-empty").hidden = rows.length > 0;
+    rows.forEach(function (d) { ul.appendChild(rowButton(d, function () { openAdminDeal(d.code); }, true)); });
+  }
+
+  /* ----- payment methods editor ----- */
+  function renderMethods() {
+    var box = $("pm-list"); box.innerHTML = "";
+    if (!draft.length) box.appendChild(el("p", "hint", "ما زال ما زدتي حتى حساب. ضغط على \"زيد حساب\"."));
+    draft.forEach(function (m, i) {
+      var c = el("div", "pm-edit");
+      function inp(ph, key, mono, list) {
+        var x = el("input"); x.type = "text"; x.placeholder = ph; x.value = m[key] || ""; x.autocomplete = "off"; x.setAttribute("aria-label", ph);
+        if (mono) x.className = "mono"; if (list) x.setAttribute("list", list);
+        x.addEventListener("input", function () { m[key] = x.value; dirty = true; }); return x;
+      }
+      c.appendChild(inp("البنك أو الوسيلة (مثال: CIH Bank)", "bank", false, "banks"));
+      c.appendChild(inp("اسم صاحب الحساب", "holder"));
+      c.appendChild(inp("RIB أو رقم الحساب", "number", true));
+      var row = el("div", "row"), rm = el("button", "linkbtn", "حيّد هاد الحساب"); rm.type = "button";
+      rm.addEventListener("click", function () { draft.splice(i, 1); dirty = true; renderMethods(); });
+      row.appendChild(rm); c.appendChild(row); box.appendChild(c);
+    });
+  }
+  $("support-in").addEventListener("input", function () { dirty = true; });
+  $("pm-add").addEventListener("click", function () { draft.push({ bank: "", holder: "", number: "" }); dirty = true; renderMethods(); });
+  $("pm-save").addEventListener("click", function () {
+    if (!db) return;
+    var clean = draft.map(function (m) { return { bank: (m.bank || "").trim(), holder: (m.holder || "").trim(), number: (m.number || "").trim() }; })
+      .filter(function (m) { return m.bank && m.number; });
+    db.doc("settings/pay").set({ methods: clean, support: ($("support-in").value || "").replace(/\D/g, "") }).then(function () { dirty = false; $("pm-msg").textContent = "تحفظات."; }, function (e) { $("pm-msg").textContent = errText(e); });
+  });
+
+  /* ----- new deal form ----- */
+  function feeMode() { return document.querySelector('input[name="fee"]:checked').value; }
+  function roleVal() { return document.querySelector('input[name="role"]:checked').value; }
+  function updateHint() {
+    var p = Number($("price2").value);
+    if (!(p > 0)) { $("fee-hint").textContent = "دخّل الثمن باش تشوف شحال غادي يدفع المشتري."; return; }
+    var sh = shares(feeMode());
+    $("fee-hint").textContent = "المشتري كيدفع " + fmt(p + sh[0]) + " درهم، والبائع كيوصلو " + fmt(Math.max(0, p - sh[1])) + " درهم.";
+  }
+  $("price2").addEventListener("input", updateHint);
+  document.querySelectorAll('input[name="fee"]').forEach(function (r) { r.addEventListener("change", updateHint); });
+  $("quick").addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-v]"); if (!b) return;
+    var it = $("item"); it.value = b.getAttribute("data-v") + " "; it.focus();
+  });
+  $("new-btn").addEventListener("click", showForm);
+  $("brand").addEventListener("click", function () { showMain(); });
+  $("admin-btn").addEventListener("click", showAdmin);
+  $("back-btn").addEventListener("click", showMain);
+
+  $("deal-form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var err = $("err"), btn = $("create-btn");
+    var item = $("item").value.trim(), price = Number($("price2").value);
+    if (!item) { err.textContent = "كتب شنو كتبيع أو كتشري."; $("item").focus(); return; }
+    if (!(price > 0)) { err.textContent = "دخّل الثمن بالدرهم."; $("price2").focus(); return; }
+    if (!$("agree").checked) { err.textContent = "لازم توافق على الشروط باش تكمل."; return; }
+    if (!db) { err.textContent = "حفظ الصفقات ما خدامش فـ هاد العرض."; return; }
+    err.textContent = ""; btn.disabled = true;
+    var d = { role: roleVal(), item: item, price: price, fee: feeMode(), contact: $("contact").value.trim(), stage: 1, state: "open", createdBy: uid, createdAt: Date.now(), updatedAt: Date.now(), log: [{ t: "تنشأات الصفقة", at: Date.now() }] };
+    (async function () {
+      var code, ref, tries = 0;
+      do {
+        code = "DM-" + String(10000 + Math.floor(Math.random() * 90000));
+        ref = db.doc("deals/" + code);
+        var snap = await ref.get();
+        if (!snap.exists) break;
+      } while (++tries < 5);
+      d.code = code;
+      await ref.set(d);
+      $("item").value = ""; $("price2").value = ""; $("contact").value = ""; $("agree").checked = false; updateHint();
+      openDeal(code);
+    })().catch(function (x) { err.textContent = errText(x); }).then(function () { btn.disabled = false; });
+  });
+
+  try { var t0 = localStorage.getItem("dm-theme"); if (t0) document.documentElement.setAttribute("data-theme", t0); } catch (x) {}
+  $("theme-btn").addEventListener("click", function () {
+    var r = document.documentElement, cur = r.getAttribute("data-theme") || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"), n = cur === "dark" ? "light" : "dark";
+    r.setAttribute("data-theme", n); try { localStorage.setItem("dm-theme", n); } catch (x) {}
+  });
+  $("find-form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var m = /^DM-?(\d{5})$/i.exec($("find-code").value.trim());
+    if (!m) { $("find-err").textContent = "الرقم خاصو يكون بحال DM-12345."; return; }
+    $("find-err").textContent = ""; openDeal("DM-" + m[1]); $("ticket").scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+
+  /* ----- boot ----- */
+  M.body = $("mode-deal"); M.title = $("t-title"); M.code = $("t-code");
+  A.body = $("a-deal"); A.title = el("span"); A.code = $("a-code");
+
+  function routeHash() {
+    var h = (location.hash || "").replace(/^#/, "");
+    if (h.toLowerCase() === "admin") { if (isAdmin) showAdmin(); return; }
+    var m = /^(DM-\d{5})$/i.exec(h);
+    if (m && db) openDeal(m[1].toUpperCase());
+  }
+  window.addEventListener("hashchange", routeHash);
+
+  /* ----- storage layer: talks to /api/db (Vercel + Upstash) ----- */
+  var ADMINPW = "";
+  function call(body) {
+    return fetch("/api/db", { method: "POST", headers: { "content-type": "application/json", "x-admin": ADMINPW }, body: JSON.stringify(body) })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { if (!r.ok) throw { code: j.code || "http" + r.status }; return j; }); });
+  }
+  function poll(f, cb, bad) {
+    var last, stop = false, t;
+    function tick() {
+      if (stop) return;
+      f().then(function (x) { var j = JSON.stringify(x); if (j !== last) { last = j; cb(x); } }, function (e) { if (bad) bad(e); })
+        .then(function () { if (!stop) t = setTimeout(tick, 3000); });
+    }
+    tick();
+    return function () { stop = true; clearTimeout(t); };
+  }
+  function makeDb() {
+    return {
+      doc: function (path) {
+        var p = path.split("/"), id = p[1], isS = p[0] === "settings";
+        function get() { return call({ op: isS ? "getSettings" : "get", code: id }).then(function (r) { var d = r.data; return { exists: !!d, data: function () { return d; } }; }); }
+        return {
+          get: get,
+          set: function (d) { return call({ op: isS ? "setSettings" : "create", code: id, data: d }); },
+          update: function (pt) { return call({ op: "patch", code: id, patch: pt }); },
+          onSnapshot: function (ok, bad) { return poll(get, ok, bad); }
+        };
+      },
+      collection: function () {
+        var w = null, o = {
+          where: function (f, op, v) { w = [f, v]; return o; }, orderBy: function () { return o; }, limit: function () { return o; },
+          onSnapshot: function (ok, bad) {
+            return poll(function () { return call({ op: "list", field: w && w[0], uid: w && w[1] }).then(function (r) { return r.deals; }); },
+              function (list) { ok({ docs: list.map(function (d) { return { data: function () { return d; } }; }) }); }, bad);
+          }
+        };
+        return o;
+      }
+    };
+  }
+
+  (async function init() {
+    var btn = $("create-btn");
+    try { uid = localStorage.getItem("dm-uid") || ""; if (!uid) { uid = "u" + Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem("dm-uid", uid); } }
+    catch (x) { uid = uid || "u" + Math.random().toString(36).slice(2); }
+    db = makeDb();
+    try { ADMINPW = localStorage.getItem("dm-admin") || ""; } catch (x) {}
+    if (ADMINPW) { try { await call({ op: "auth" }); isAdmin = true; } catch (x) { ADMINPW = ""; try { localStorage.removeItem("dm-admin"); } catch (y) {} } }
+    fetch("/api/db").then(function (r) { return r.json(); }).then(function (j) {
+      if (!j.url || !j.token) setNotice("قاعدة البيانات ماشي مربوطة: ربط Upstash مع المشروع وانشر من جديد.");
+      else if (j.ping !== "PONG") setNotice("القاعدة مربوطة ولكن ما جاوباتش: " + j.ping);
+    }).catch(function () { setNotice("ملف api/db.js ماشي خدام: تأكد أنو فـ فولدر api."); });
+    $("admin-btn").hidden = !isAdmin;
+    var lg = $("adm-login"); lg.textContent = isAdmin ? "خروج الإدارة" : "دخول الإدارة";
+    lg.addEventListener("click", function () {
+      if (isAdmin) { try { localStorage.removeItem("dm-admin"); } catch (x) {} location.reload(); return; }
+      var p = prompt("كلمة سر الإدارة"); if (!p) return;
+      ADMINPW = p;
+      call({ op: "auth" }).then(function () { try { localStorage.setItem("dm-admin", p); } catch (x) {} location.reload(); }, function () { ADMINPW = ""; alert("كلمة السر غالطة، ولا ADMIN_PASSWORD ما تزادش فـ Vercel."); });
+    });
+    var q = isAdmin ? db.collection("deals").orderBy("createdAt", "desc").limit(300) : db.collection("deals").where("createdBy", "==", uid).limit(100);
+    function setDeals() {
+      var m = {}; qa.concat(qb).forEach(function (d) { m[d.code] = d; });
+      allDeals = Object.keys(m).map(function (k) { return m[k]; }).sort(function (a, b) { return (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0); });
+      renderList(); renderAdminList();
+    }
+    q.onSnapshot(function (snap) { qa = snap.docs.map(function (s) { return s.data(); }); setDeals(); }, function () {});
+    if (!isAdmin && uid) db.collection("deals").where("counterparty", "==", uid).limit(100).onSnapshot(function (snap) { qb = snap.docs.map(function (s) { return s.data(); }); setDeals(); }, function () {});
+    db.doc("settings/pay").onSnapshot(function (s) {
+      var data = s.exists ? (s.data() || {}) : {};
+      methods = Array.isArray(data.methods) ? data.methods.filter(function (m) { return m && m.bank && m.number; }) : [];
+      support = String(data.support || "").replace(/\D/g, ""); var sp = $("support"); sp.hidden = !support; sp.href = "https://wa.me/" + support; if (!dirty) $("support-in").value = support;
+      if (!dirty) { draft = methods.map(function (m) { return { bank: m.bank, holder: m.holder || "", number: m.number }; }); if (isAdmin) renderMethods(); }
+      if (M.cur) renderDeal(M.cur, M);
+    }, function () {});
+    if (isAdmin) renderMethods();
+    routeHash();
+  })().catch(function () { setNotice("وقع مشكل فـ تحميل الصفقات."); });
+})();
+</script>
+
+</body></html>
